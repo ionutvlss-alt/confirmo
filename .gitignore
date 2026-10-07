@@ -1,0 +1,8 @@
+node_modules
+.npm-cache/
+build
+.react-router
+.env
+prisma/*.sqlite
+prisma/*.sqlite-journal
+*.log

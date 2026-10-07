@@ -1,0 +1,14 @@
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { Form, useActionData, useLoaderData } from "react-router";
+
+import { PageHeader, Shell } from "../components";
+import prisma from "../db.server";
+import { getShopContext } from "../lib/tenant.server";
+
+export const loader = async ({ request }: LoaderFunctionArgs) => { const { shop } = await getShopContext(request); return { settings: await prisma.shopSettings.findUnique({ where: { shopId: shop.id } }) }; };
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { shop } = await getShopContext(request); const form = await request.formData();
+  await prisma.shopSettings.upsert({ where: { shopId: shop.id }, update: { uiLanguage: String(form.get("uiLanguage") || "ro"), defaultCustomerLanguage: String(form.get("defaultCustomerLanguage") || "ro_RO"), timezone: String(form.get("timezone") || "Europe/Bucharest"), autoDetectCustomerLanguage: form.get("autoDetectCustomerLanguage") === "on" }, create: { shopId: shop.id, uiLanguage: String(form.get("uiLanguage") || "ro"), defaultCustomerLanguage: String(form.get("defaultCustomerLanguage") || "ro_RO"), timezone: String(form.get("timezone") || "Europe/Bucharest"), autoDetectCustomerLanguage: form.get("autoDetectCustomerLanguage") === "on" } });
+  return { ok: true };
+};
+export default function SettingsPage() { const { settings } = useLoaderData<typeof loader>(); const result = useActionData<typeof action>(); return <Shell><PageHeader title="Shop settings" description="Language, timezone and customer communication defaults." /><section className="confirmo-card confirmo-card-pad"><Form method="post" className="confirmo-form"><div className="confirmo-field"><label htmlFor="uiLanguage">Admin language</label><select id="uiLanguage" name="uiLanguage" defaultValue={settings?.uiLanguage || "ro"}><option value="ro">Română</option><option value="en">English</option><option value="hu">Magyar</option></select></div><div className="confirmo-field"><label htmlFor="defaultCustomerLanguage">Default customer language</label><select id="defaultCustomerLanguage" name="defaultCustomerLanguage" defaultValue={settings?.defaultCustomerLanguage || "ro_RO"}><option value="ro_RO">Romanian</option><option value="en_US">English</option><option value="hu_HU">Hungarian</option></select></div><div className="confirmo-field"><label htmlFor="timezone">Timezone</label><input id="timezone" name="timezone" defaultValue={settings?.timezone || "Europe/Bucharest"} /></div><label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" name="autoDetectCustomerLanguage" defaultChecked={settings?.autoDetectCustomerLanguage ?? true} /> Detect customer language when possible</label>{result?.ok ? <div className="confirmo-callout">Settings saved.</div> : null}<button className="confirmo-action confirmo-action-primary" type="submit">Save settings</button></Form></section></Shell>; }

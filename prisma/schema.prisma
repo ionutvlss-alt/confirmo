@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+model ShopifyShop {
+  id                 String              @id @default(cuid())
+  domain             String              @unique
+  name               String?
+  currency           String              @default("RON")
+  timezone           String              @default("Europe/Bucharest")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  orders             ShopifyOrder[]
+  customers          ShopifyCustomer[]
+  confirmations      OrderConfirmation[]
+  reminders          Reminder[]
+  templates          MessageTemplate[]
+  messages           WhatsAppMessage[]
+  analyticsEvents    AnalyticsEvent[]
+  whatsappConfig     WhatsAppConfig?
+  settings           ShopSettings?
+}
+
+model ShopifyOrder {
+  id                    String              @id @default(cuid())
+  shopifyId             String              @unique
+  shopId                String
+  orderNumber           String
+  customerName          String?
+  customerPhone         String?
+  customerEmail         String?
+  totalAmount           String              @default("0.00")
+  currency              String              @default("RON")
+  lineItemsJson         String              @default("[]")
+  confirmationStatus    String              @default("pending")
+  confirmationRiskLevel String              @default("not_evaluated")
+  confirmationRiskScore Int                 @default(0)
+  lastRiskEvaluatedAt   DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  shop                  ShopifyShop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  confirmation          OrderConfirmation?
+  reminders             Reminder[]
+  messages              WhatsAppMessage[]
+  analyticsEvents       AnalyticsEvent[]
+
+  @@index([shopId, confirmationStatus])
+  @@index([shopId, confirmationRiskLevel])
+}
+
+model ShopifyCustomer {
+  id           String       @id @default(cuid())
+  shopifyId    String?
+  shopId       String
+  name         String?
+  phone        String?
+  email        String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  shop         ShopifyShop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, shopifyId])
+  @@index([shopId, phone])
+}
+
+model OrderConfirmation {
+  id               String        @id @default(cuid())
+  orderId          String        @unique
+  shopId           String
+  status           String        @default("pending")
+  respondedAt      DateTime?
+  responseSource   String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  order            ShopifyOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop             ShopifyShop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id              String        @id @default(cuid())
+  shopId          String
+  orderId         String
+  status          String        @default("active")
+  nextReminderAt  DateTime
+  lastReminderAt  DateTime?
+  remindersSent   Int           @default(0)
+  maxReminders    Int           @default(2)
+  reminderInterval Int          @default(24)
+  cancelledReason String?
+  originalMessage String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  shop            ShopifyShop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order           ShopifyOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, status, nextReminderAt])
+}
+
+model MessageTemplate {
+  id             String       @id @default(cuid())
+  shopId         String
+  templateName   String
+  metaTemplateName String
+  messageTemplate String
+  languageCode   String       @default("ro")
+  isActive       Boolean      @default(false)
+  button1Text    String       @default("Confirmă comanda")
+  button2Text    String       @default("Refuză comanda")
+  button3Text    String       @default("Vreau modificări")
+  button1Action  String       @default("confirm")
+  button2Action  String       @default("decline")
+  button3Action  String       @default("modify")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  shop           ShopifyShop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, templateName])
+  @@index([shopId, isActive])
+}
+
+model WhatsAppMessage {
+  id                String        @id @default(cuid())
+  shopId            String
+  orderId           String?
+  customerId        String?
+  messageText       String
+  recipientPhoneNumber String
+  providerMessageId String?
+  direction         String        @default("outbound")
+  sentAt            DateTime      @default(now())
+  deliveryStatus    String        @default("accepted")
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  failedAt          DateTime?
+  failureReason     String?
+  statusUpdatedAt   DateTime      @updatedAt
+  shop              ShopifyShop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order             ShopifyOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, sentAt])
+  @@index([providerMessageId])
+}
+
+model WhatsAppConfig {
+  id                    String       @id @default(cuid())
+  shopId                String       @unique
+  accessTokenEncrypted  String?
+  businessAccountId     String?
+  phoneNumberId         String?
+  webhookToken          String?
+  isActive              Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+  shop                  ShopifyShop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model ShopSettings {
+  id                     String       @id @default(cuid())
+  shopId                 String       @unique
+  uiLanguage             String       @default("ro")
+  defaultCustomerLanguage String      @default("ro_RO")
+  autoDetectCustomerLanguage Boolean   @default(true)
+  reminderInterval       Int          @default(24)
+  maxReminders           Int          @default(2)
+  timezone               String       @default("Europe/Bucharest")
+  remindersEnabled       Boolean      @default(true)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  shop                   ShopifyShop  @relation(fields: [shopId], references: [id], onDelete: Cascade)
+}
+
+model AnalyticsEvent {
+  id               String        @id @default(cuid())
+  shopId           String
+  orderId          String?
+  customerId       String?
+  eventType        String
+  eventData        String        @default("{}")
+  occurredAt       DateTime      @default(now())
+  phoneStatus      String?
+  phoneIssueReason String?
+  phoneNormalized  String?
+  phoneConfidence  Int?
+  shop             ShopifyShop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  order            ShopifyOrder? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([shopId, eventType, occurredAt])
+}
+
+model WebhookEvent {
+  id          String   @id
+  topic       String
+  shop        String
+  processedAt DateTime @default(now())
+}
