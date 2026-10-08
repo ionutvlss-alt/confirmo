@@ -12,15 +12,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (webhookId && await prisma.webhookEvent.findUnique({ where: { id: webhookId } })) return new Response("duplicate", { status: 200 });
   const tenant = await ensureShop(shop);
   const order = payload as any;
+  const customerPhone = order.phone || order.customer?.phone || order.shipping_address?.phone || order.billing_address?.phone || order.customer?.default_address?.phone || null;
   const saved = await prisma.shopifyOrder.upsert({
     where: { shopifyId: String(order.admin_graphql_api_id || order.id) },
-    update: { orderNumber: String(order.name || order.order_number || order.id), customerName: [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || null, customerPhone: order.phone || order.customer?.phone || null, customerEmail: order.email || order.customer?.email || null, totalAmount: String(order.total_price || "0"), currency: String(order.currency || tenant.currency), lineItemsJson: JSON.stringify(order.line_items || []) },
-    create: { shopId: tenant.id, shopifyId: String(order.admin_graphql_api_id || order.id), orderNumber: String(order.name || order.order_number || order.id), customerName: [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || null, customerPhone: order.phone || order.customer?.phone || null, customerEmail: order.email || order.customer?.email || null, totalAmount: String(order.total_price || "0"), currency: String(order.currency || tenant.currency), lineItemsJson: JSON.stringify(order.line_items || []) },
+    update: { orderNumber: String(order.name || order.order_number || order.id), customerName: [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || null, customerPhone, customerEmail: order.email || order.customer?.email || null, totalAmount: String(order.total_price || "0"), currency: String(order.currency || tenant.currency), lineItemsJson: JSON.stringify(order.line_items || []) },
+    create: { shopId: tenant.id, shopifyId: String(order.admin_graphql_api_id || order.id), orderNumber: String(order.name || order.order_number || order.id), customerName: [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || null, customerPhone, customerEmail: order.email || order.customer?.email || null, totalAmount: String(order.total_price || "0"), currency: String(order.currency || tenant.currency), lineItemsJson: JSON.stringify(order.line_items || []) },
   });
   await prisma.orderConfirmation.upsert({ where: { orderId: saved.id }, update: {}, create: { orderId: saved.id, shopId: tenant.id, status: "pending" } });
   try { await syncShopifyConfirmationTag(shop, saved.shopifyId, "pending"); } catch (error) { console.error("Initial Shopify confirmation tag failed", error); }
   if (webhookId) await prisma.webhookEvent.create({ data: { id: webhookId, topic, shop } });
 
+  console.info("Order confirmation webhook", { shop, order: saved.orderNumber, hasPhone: Boolean(saved.customerPhone) });
   if (saved.customerPhone) {
     try {
       const productSummary = (order.line_items || [])
@@ -73,6 +75,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       });
       console.error("Automatic WhatsApp order confirmation failed", error);
     }
+  } else {
+    await prisma.analyticsEvent.create({ data: { shopId: tenant.id, orderId: saved.id, eventType: "message_skipped", eventData: JSON.stringify({ source: "orders_create_webhook", reason: "missing_phone" }) } });
+    console.warn("Automatic WhatsApp message skipped: order has no phone number", { shop, order: saved.orderNumber });
   }
   return new Response("ok", { status: 200 });
 };

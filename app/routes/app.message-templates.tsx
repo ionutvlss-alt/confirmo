@@ -42,11 +42,11 @@ export default function TemplatesPage() {
             {template ? <input type="hidden" name="id" value={template.id} /> : null}
             <div className="confirmo-field">
               <label htmlFor="templateName">Internal name</label>
-              <input id="templateName" name="templateName" defaultValue={template?.templateName || "confirmo_order_confirmation"} required />
+              <input id="templateName" name="templateName" defaultValue={template?.templateName || "noul_model_confirmare"} required />
             </div>
             <div className="confirmo-field">
               <label htmlFor="metaTemplateName">Meta template name</label>
-              <input id="metaTemplateName" name="metaTemplateName" defaultValue={template?.metaTemplateName || "confirmo_order_confirmation"} required />
+              <input id="metaTemplateName" name="metaTemplateName" defaultValue={template?.metaTemplateName || "noul_model_confirmare"} required />
               <span className="confirmo-help">This must match the approved template name in Meta Business Manager.</span>
             </div>
             <div className="confirmo-field">

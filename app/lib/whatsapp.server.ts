@@ -53,7 +53,9 @@ export async function sendWhatsAppMessage(params: {
   }
 
   const version = process.env.WHATSAPP_GRAPH_VERSION || "v23.0";
-  const templateName = params.templateName || configuredTemplate?.metaTemplateName || process.env.WHATSAPP_TEMPLATE_NAME || "confirmo_order_confirmation";
+  const configuredTemplateName = configuredTemplate?.metaTemplateName?.trim();
+  const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" ? "noul_model_confirmare" : configuredTemplateName;
+  const templateName = params.templateName || legacyTemplateName || process.env.WHATSAPP_TEMPLATE_NAME || "noul_model_confirmare";
   const templateLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
   const recipient = phone.normalized.replace(/^\+/, "");
   const response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {

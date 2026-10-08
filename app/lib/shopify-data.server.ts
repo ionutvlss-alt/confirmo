@@ -9,7 +9,9 @@ const ORDERS_QUERY = `#graphql
         createdAt
         email
         phone
-        customer { firstName lastName email phone }
+        customer { firstName lastName email phone defaultAddress { phone } }
+        shippingAddress { phone }
+        billingAddress { phone }
         totalPriceSet { shopMoney { amount currencyCode } }
         lineItems(first: 25) {
           nodes { title quantity }
@@ -30,7 +32,7 @@ export async function syncOrders(shopId: string, admin: { graphql: Function } | 
     const customerName = customer
       ? [customer.firstName, customer.lastName].filter(Boolean).join(" ")
       : null;
-    const phone = order.phone || customer?.phone || null;
+    const phone = order.phone || customer?.phone || order.shippingAddress?.phone || order.billingAddress?.phone || customer?.defaultAddress?.phone || null;
     const savedOrder = await prisma.shopifyOrder.upsert({
       where: { shopifyId: order.id },
       update: {
