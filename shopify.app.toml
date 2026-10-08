@@ -18,3 +18,7 @@ scopes = "read_orders,read_customers"
 
 [auth]
 redirect_urls = [ "http://localhost:3000/auth/callback" ]
+
+[[webhooks.subscriptions]]
+topics = ["orders/create"]
+uri = "/webhooks/orders/create"
