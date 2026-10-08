@@ -57,7 +57,7 @@ export function OrdersTable({ orders, showActions = false }: { orders: any[]; sh
               <td><StatusBadge value={order.confirmationStatus} /></td>
               <td><StatusBadge value={order.confirmationRiskLevel} /> <span className="confirmo-muted">{order.confirmationRiskScore}/100</span></td>
               <td>{formatDate(order.createdAt)}</td>
-              {showActions ? <td><Link className="confirmo-action" to={`/app/orders/${order.id}`}>Deschide</Link></td> : null}
+              {showActions ? <td><Link className="confirmo-action" to={`orders/${order.id}`}>Deschide</Link></td> : null}
             </tr>
           ))}
         </tbody>

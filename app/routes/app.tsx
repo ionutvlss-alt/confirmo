@@ -35,10 +35,10 @@ export default function AppLayout() {
         <div className="confirmo-brand"><span className="confirmo-brand-mark">C</span><span>Confirmo</span></div>
         <nav className="confirmo-main-nav" aria-label="Navigare aplicație">
           {navGroups.flatMap((group) => group.items.map(([url, label]) => (
-            <Link key={url} to={url}>{label}</Link>
+            <Link key={url} to={url.replace(/^\/app\/?/, "") || "."}>{label}</Link>
           )))}
         </nav>
-        <Link className="confirmo-settings-link" to="/app/settings">Setări</Link>
+        <Link className="confirmo-settings-link" to="settings">Setări</Link>
       </div>
       <Outlet />
     </AppProvider>

@@ -31,7 +31,7 @@ export default function Dashboard() {
   const data = useLoaderData<typeof loader>();
   return (
     <Shell>
-      <PageHeader eyebrow={data.shop} title="Confirmo dashboard" description="The control center for WhatsApp order confirmations." action={<Link className="confirmo-action confirmo-action-primary" to="/app/setup-guide">Complete setup</Link>} />
+      <PageHeader eyebrow={data.shop} title="Confirmo dashboard" description="The control center for WhatsApp order confirmations." action={<Link className="confirmo-action confirmo-action-primary" to="setup-guide">Complete setup</Link>} />
       <div className="confirmo-grid confirmo-grid-4">
         <StatCard label="Pending confirmations" value={data.pending} note="Orders waiting for a response" />
         <StatCard label="Confirmed orders" value={data.confirmed} note={`${data.confirmationRate}% confirmation rate`} />
