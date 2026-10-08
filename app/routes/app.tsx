@@ -13,10 +13,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export default function AppLayout() {
-  const { apiKey } = useLoaderData<typeof loader>();
+  const { apiKey, shop } = useLoaderData<typeof loader>();
 
   return (
-    <ShopifyAppProvider apiKey={apiKey}>
+    <ShopifyAppProvider apiKey={apiKey} shop={shop}>
       <s-page>
         <NavMenu>
           {navGroups.flatMap((group, groupIndex) => group.items.map(([url, label], index) => (
