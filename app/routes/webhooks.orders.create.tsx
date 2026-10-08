@@ -4,6 +4,7 @@ import { authenticate } from "../shopify.server";
 import prisma from "../db.server";
 import { ensureShop } from "../lib/tenant.server";
 import { buildTemplateParameters, sendWhatsAppMessage } from "../lib/whatsapp.server";
+import { syncShopifyConfirmationTag } from "../lib/shopify-admin.server";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { topic, shop, payload } = await authenticate.webhook(request);
@@ -17,6 +18,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     create: { shopId: tenant.id, shopifyId: String(order.admin_graphql_api_id || order.id), orderNumber: String(order.name || order.order_number || order.id), customerName: [order.customer?.first_name, order.customer?.last_name].filter(Boolean).join(" ") || null, customerPhone: order.phone || order.customer?.phone || null, customerEmail: order.email || order.customer?.email || null, totalAmount: String(order.total_price || "0"), currency: String(order.currency || tenant.currency), lineItemsJson: JSON.stringify(order.line_items || []) },
   });
   await prisma.orderConfirmation.upsert({ where: { orderId: saved.id }, update: {}, create: { orderId: saved.id, shopId: tenant.id, status: "pending" } });
+  try { await syncShopifyConfirmationTag(shop, saved.shopifyId, "pending"); } catch (error) { console.error("Initial Shopify confirmation tag failed", error); }
   if (webhookId) await prisma.webhookEvent.create({ data: { id: webhookId, topic, shop } });
 
   if (saved.customerPhone) {

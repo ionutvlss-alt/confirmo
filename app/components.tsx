@@ -34,7 +34,7 @@ export function StatusBadge({ value }: { value: string }) {
     ? "success"
     : ["high", "declined", "failed", "cancelled"].includes(value)
       ? "critical"
-      : ["pending", "active", "medium"].includes(value)
+      : ["pending", "active", "medium", "modification_requested"].includes(value)
         ? "warning"
         : "neutral";
   return <span className={`confirmo-badge confirmo-badge-${tone}`}>{statusLabel(value)}</span>;
@@ -47,17 +47,17 @@ export function OrdersTable({ orders, showActions = false }: { orders: any[]; sh
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="confirmo-table">
-        <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Confirmation</th><th>Risk</th><th>Created</th>{showActions ? <th /> : null}</tr></thead>
+        <thead><tr><th>Comandă</th><th>Client</th><th>Total</th><th>Status</th><th>Risc</th><th>Creată</th>{showActions ? <th /> : null}</tr></thead>
         <tbody>
           {orders.map((order) => (
             <tr key={order.id}>
               <td><strong>{order.orderNumber}</strong></td>
-              <td>{order.customerName || "Unknown"}<br /><span className="confirmo-muted">{order.customerPhone || "No phone"}</span></td>
+              <td>{order.customerName || "Client necunoscut"}<br /><span className="confirmo-muted">{order.customerPhone || "Fără telefon"}</span></td>
               <td>{formatMoney(order.totalAmount, order.currency)}</td>
               <td><StatusBadge value={order.confirmationStatus} /></td>
               <td><StatusBadge value={order.confirmationRiskLevel} /> <span className="confirmo-muted">{order.confirmationRiskScore}/100</span></td>
               <td>{formatDate(order.createdAt)}</td>
-              {showActions ? <td><Link className="confirmo-action" to={`/app/orders/${order.id}`}>View</Link></td> : null}
+              {showActions ? <td><Link className="confirmo-action" to={`/app/orders/${order.id}`}>Deschide</Link></td> : null}
             </tr>
           ))}
         </tbody>

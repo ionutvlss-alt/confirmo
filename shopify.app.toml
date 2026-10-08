@@ -14,7 +14,7 @@ topics = ["orders/create"]
 uri = "https://confirmo-sbc8.onrender.com/webhooks/orders/create"
 
 [access_scopes]
-scopes = "read_orders,read_customers"
+scopes = "read_orders,write_orders,read_customers"
 
 [auth]
 redirect_urls = [

@@ -18,18 +18,19 @@ export function formatDate(value: Date | string | null | undefined) {
 
 export function statusLabel(status: string) {
   return {
-    pending: "Pending",
-    confirmed: "Confirmed",
-    declined: "Declined",
-    active: "Active",
-    completed: "Completed",
-    cancelled: "Cancelled",
-    delivered: "Delivered",
-    read: "Read",
-    failed: "Failed",
-    high: "High",
-    medium: "Medium",
-    low: "Low",
-    not_evaluated: "Not evaluated",
+    pending: "În așteptare",
+    confirmed: "Confirmat",
+    declined: "Anulat",
+    modification_requested: "Modificare",
+    active: "Activ",
+    completed: "Finalizat",
+    cancelled: "Anulat",
+    delivered: "Livrat",
+    read: "Citit",
+    failed: "Eșuat",
+    high: "Ridicat",
+    medium: "Mediu",
+    low: "Scăzut",
+    not_evaluated: "Neevaluat",
   }[status] ?? status;
 }
