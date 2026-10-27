@@ -102,6 +102,8 @@ export async function sendWhatsAppMessage(params: {
   const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
   const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
+  const parameters = params.templateParameters || [params.body];
+  const components = parameters.length > 0 ? [{ type: "body", parameters: parameters.map((text) => ({ type: "text", text })) }] : undefined;
   const response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -111,8 +113,8 @@ export async function sendWhatsAppMessage(params: {
       type: "template",
       template: {
         name: templateName,
-        language: { code: templateLanguage },
-        components: [{ type: "body", parameters: (params.templateParameters || [params.body]).map((text) => ({ type: "text", text })) }],
+        language: { policy: "deterministic", code: templateLanguage },
+        ...(components ? { components } : {}),
       },
     }),
   });
