@@ -48,8 +48,12 @@ export async function sendWhatsAppMessage(params: {
   const token = decryptSecret(config?.accessTokenEncrypted) || process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = config?.phoneNumberId || process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-  if (process.env.DEMO_MODE === "true" || !token || !phoneNumberId) {
+  if (process.env.DEMO_MODE === "true") {
+    console.warn("WhatsApp demo mode is enabled; no real message was sent", { shopId: params.shopId, orderId: params.orderId });
     return { providerMessageId: `demo-${crypto.randomUUID()}`, deliveryStatus: "accepted", phone };
+  }
+  if (!token || !phoneNumberId) {
+    throw new Error("WhatsApp live configuration is incomplete: save an access token and phone number ID, or configure WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID.");
   }
 
   const version = process.env.WHATSAPP_GRAPH_VERSION || "v23.0";
@@ -76,5 +80,6 @@ export async function sendWhatsAppMessage(params: {
   if (!response.ok || payload.error) {
     throw new Error(payload.error?.message || "WhatsApp API request failed");
   }
+  console.info("WhatsApp API accepted message", { shopId: params.shopId, orderId: params.orderId, providerMessageId: payload.messages?.[0]?.id, templateName, templateLanguage });
   return { providerMessageId: payload.messages?.[0]?.id, deliveryStatus: "sent", phone };
 }
