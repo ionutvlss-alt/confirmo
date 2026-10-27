@@ -16,8 +16,7 @@ async function resolveMetaTemplateLanguage(params: {
   });
   const payload = await response.json();
   if (!response.ok || payload.error) {
-    console.warn("WhatsApp template lookup failed; using configured language", { templateName: params.templateName, status: response.status });
-    return params.preferredLanguage;
+    throw new Error(`Meta template lookup failed (${response.status}): ${payload.error?.message || "unknown error"}`);
   }
   const templates = Array.isArray(payload.data) ? payload.data : [];
   const matches = templates.filter((template: any) => template.name === params.templateName && ["APPROVED", "ACTIVE"].includes(String(template.status || "").toUpperCase()));
