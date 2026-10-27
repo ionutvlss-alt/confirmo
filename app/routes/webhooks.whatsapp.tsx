@@ -28,11 +28,20 @@ function validSignature(raw: string, signature: string | null) {
 export const action = async ({ request }: ActionFunctionArgs) => {
   const raw = await request.text();
   if (!validSignature(raw, request.headers.get("x-hub-signature-256"))) return new Response("Unauthorized", { status: 401 });
-  const body = JSON.parse(raw); const change = body.entry?.[0]?.changes?.[0]?.value; const message = change?.messages?.[0];
-  if (!message) return new Response("ok", { status: 200 });
+  const body = JSON.parse(raw); const change = body.entry?.[0]?.changes?.[0]?.value;
   const config = change.metadata?.phone_number_id ? await prisma.whatsAppConfig.findFirst({ where: { phoneNumberId: change.metadata.phone_number_id } }) : null;
   if (!config && !isDemoMode) return new Response("Unknown WhatsApp number", { status: 403 });
   const shop = config ? await prisma.shopifyShop.findUniqueOrThrow({ where: { id: config.shopId } }) : await ensureShop(DEMO_SHOP);
+  const statuses = change?.statuses || [];
+  if (Array.isArray(statuses) && statuses.length > 0) {
+    for (const status of statuses) {
+      await prisma.whatsAppMessage.updateMany({ where: { shopId: shop.id, providerMessageId: status.id }, data: { deliveryStatus: status.status || "unknown" } });
+      console.info("WhatsApp delivery status", { shop: shop.domain, providerMessageId: status.id, status: status.status, errors: status.errors?.map((error: any) => error.title || error.message || error.code) || [] });
+    }
+    return new Response("ok", { status: 200 });
+  }
+  const message = change?.messages?.[0];
+  if (!message) return new Response("ok", { status: 200 });
   const phone = message.from ? `+${message.from}` : "";
   const buttonReply = message.interactive?.button_reply;
   const actionId = buttonReply?.id || message.button?.payload || "";
