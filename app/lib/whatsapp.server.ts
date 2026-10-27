@@ -32,14 +32,12 @@ async function resolveMetaTemplateLanguage(params: {
 
 async function verifyMetaPhoneAccount(params: { phoneNumberId: string; businessAccountId: string | null | undefined; token: string; version: string }) {
   if (!params.businessAccountId) return;
-  const response = await fetch(`https://graph.facebook.com/${params.version}/${params.phoneNumberId}?fields=id,display_phone_number,verified_name,whatsapp_business_account`, { headers: { Authorization: `Bearer ${params.token}` } });
+  const response = await fetch(`https://graph.facebook.com/${params.version}/${params.businessAccountId}/phone_numbers?fields=id,display_phone_number,verified_name&limit=100`, { headers: { Authorization: `Bearer ${params.token}` } });
   const payload = await response.json();
-  if (!response.ok || payload.error) throw new Error(`Meta phone lookup failed (${response.status}): ${payload.error?.message || "unknown error"}`);
-  const actualBusinessAccountId = payload.whatsapp_business_account?.id;
-  if (actualBusinessAccountId && actualBusinessAccountId !== params.businessAccountId) {
-    throw new Error(`Phone Number ID ${params.phoneNumberId} aparține WABA ${actualBusinessAccountId}, dar aplicația este configurată cu WABA ${params.businessAccountId}.`);
-  }
-  console.info("WhatsApp phone account verified", { phoneNumberId: params.phoneNumberId, businessAccountId: actualBusinessAccountId || params.businessAccountId });
+  if (!response.ok || payload.error) throw new Error(`Meta WABA phone lookup failed (${response.status}): ${payload.error?.message || "unknown error"}`);
+  const phone = Array.isArray(payload.data) ? payload.data.find((item: any) => String(item.id) === String(params.phoneNumberId)) : null;
+  if (!phone) throw new Error(`Phone Number ID ${params.phoneNumberId} nu este asociat WABA-ului ${params.businessAccountId}.`);
+  console.info("WhatsApp phone account verified", { phoneNumberId: phone.id, businessAccountId: params.businessAccountId });
 }
 
 export async function buildTemplateParameters(shopId: string, values: string[]) {
