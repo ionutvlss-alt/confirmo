@@ -34,10 +34,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   if (!config && !isDemoMode) return new Response("Unknown WhatsApp number", { status: 403 });
   const shop = config ? await prisma.shopifyShop.findUniqueOrThrow({ where: { id: config.shopId } }) : await ensureShop(DEMO_SHOP);
   const phone = message.from ? `+${message.from}` : "";
-  const actionId = message.interactive?.button_reply?.id || message.button?.payload || "";
+  const buttonReply = message.interactive?.button_reply;
+  const actionId = buttonReply?.id || message.button?.payload || "";
+  const buttonTitle = buttonReply?.title || message.button?.text || "";
   const text = message.text?.body || "";
-  const inferredAction = /^(da|yes|y|1|confirm|confirmă)$/i.test(text.trim()) ? "confirm" : /^(nu|no|n|2|decline|refuz)$/i.test(text.trim()) ? "decline" : /modif|schimb|edit|update/i.test(text) ? "modify" : "";
-  const responseAction = actionId || inferredAction;
+  const responseText = `${text} ${buttonTitle}`.trim();
+  const inferredAction = /confirm|confirmă|accept|da|yes|\b1\b/i.test(responseText) ? "confirm" : /refuz|anul|declin|nu|no|\b2\b/i.test(responseText) ? "decline" : /modif|schimb|edit|update|\b3\b/i.test(responseText) ? "modify" : "";
+  const responseAction = inferredAction || actionId;
   if (!responseAction) return new Response("ok", { status: 200 });
   const orderId = responseAction.match(/(?:confirm|decline|modify)_([^_]+)_/)?.[1];
   const order = orderId ? await prisma.shopifyOrder.findFirst({ where: { shopId: shop.id, OR: [{ id: orderId }, { shopifyId: orderId }] } }) : await prisma.shopifyOrder.findFirst({ where: { shopId: shop.id, customerPhone: { contains: phone.slice(-8) }, confirmationStatus: "pending" } });
