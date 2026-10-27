@@ -93,7 +93,7 @@ export async function sendWhatsAppMessage(params: {
     throw new Error("WhatsApp live configuration is incomplete: save an access token and phone number ID, or configure WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID.");
   }
 
-  const version = process.env.WHATSAPP_GRAPH_VERSION || "v23.0";
+  const version = process.env.WHATSAPP_GRAPH_VERSION || "v25.0";
   await verifyMetaPhoneAccount({ phoneNumberId, businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version });
   const configuredTemplateName = configuredTemplate?.metaTemplateName?.trim();
   const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" ? "noul_model_confirmare" : configuredTemplateName;
