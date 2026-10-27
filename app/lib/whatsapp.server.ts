@@ -3,6 +3,34 @@ import crypto from "node:crypto";
 import prisma from "../db.server";
 import { decryptSecret } from "./crypto.server";
 
+async function resolveMetaTemplateLanguage(params: {
+  businessAccountId: string | null | undefined;
+  token: string;
+  version: string;
+  templateName: string;
+  preferredLanguage: string;
+}) {
+  if (!params.businessAccountId) return params.preferredLanguage;
+  const response = await fetch(`https://graph.facebook.com/${params.version}/${params.businessAccountId}/message_templates?fields=name,language,status&limit=200`, {
+    headers: { Authorization: `Bearer ${params.token}` },
+  });
+  const payload = await response.json();
+  if (!response.ok || payload.error) {
+    console.warn("WhatsApp template lookup failed; using configured language", { templateName: params.templateName, status: response.status });
+    return params.preferredLanguage;
+  }
+  const templates = Array.isArray(payload.data) ? payload.data : [];
+  const matches = templates.filter((template: any) => template.name === params.templateName && ["APPROVED", "ACTIVE"].includes(String(template.status || "").toUpperCase()));
+  if (matches.length === 0) {
+    throw new Error(`Templateul Meta '${params.templateName}' nu există ca template aprobat în WABA-ul configurat pentru aplicație.`);
+  }
+  const exact = matches.find((template: any) => (template.language_code || template.language) === params.preferredLanguage);
+  const selected = exact || matches[0];
+  const language = selected.language_code || selected.language;
+  console.info("WhatsApp template resolved", { templateName: params.templateName, configuredLanguage: params.preferredLanguage, metaLanguage: language });
+  return language || params.preferredLanguage;
+}
+
 export async function buildTemplateParameters(shopId: string, values: string[]) {
   const configuredTemplate = await prisma.messageTemplate.findFirst({
     where: { shopId },
@@ -60,7 +88,8 @@ export async function sendWhatsAppMessage(params: {
   const configuredTemplateName = configuredTemplate?.metaTemplateName?.trim();
   const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" ? "noul_model_confirmare" : configuredTemplateName;
   const templateName = params.templateName || legacyTemplateName || process.env.WHATSAPP_TEMPLATE_NAME || "noul_model_confirmare";
-  const templateLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
+  const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
+  const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
   const response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
     method: "POST",
