@@ -97,7 +97,9 @@ export async function sendWhatsAppMessage(params: {
   console.info("WhatsApp Graph API version", { version });
   await verifyMetaPhoneAccount({ phoneNumberId, businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version });
   const configuredTemplateName = configuredTemplate?.metaTemplateName?.trim();
-  const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" ? "noul_model_confirmare" : configuredTemplateName;
+  const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" || configuredTemplateName === "noul_model_confirmare"
+    ? "noul_model_confirmare3"
+    : configuredTemplateName;
   const configuredTemplateNameFromEnv = process.env.WHATSAPP_TEMPLATE_NAME?.trim();
   const environmentTemplateName = configuredTemplateNameFromEnv && configuredTemplateNameFromEnv !== "hello_world"
     ? configuredTemplateNameFromEnv
