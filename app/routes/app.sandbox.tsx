@@ -4,7 +4,7 @@ import { Form, useActionData, useLoaderData } from "react-router";
 import { PageHeader, Shell, StatusBadge } from "../components";
 import prisma from "../db.server";
 import { getShopContext } from "../lib/tenant.server";
-import { sendWhatsAppMessage } from "../lib/whatsapp.server";
+import { buildTemplateParameters, sendWhatsAppMessage } from "../lib/whatsapp.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => { const { shop } = await getShopContext(request); return { shop: shop.domain, events: await prisma.analyticsEvent.findMany({ where: { shopId: shop.id }, orderBy: { occurredAt: "desc" }, take: 8 }) }; };
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -13,17 +13,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const phone = String(form.get("phone") || "");
 
   try {
+    const templateParameters = await buildTemplateParameters(shop.id, ["John Doe", "123456", "Confirmo", "Produse comandate", "299 RON"]);
     const result = await sendWhatsAppMessage({
       shopId: shop.id,
       phone,
       body: "Acesta este un mesaj de test Confirmo.",
-      // Use Meta's built-in approved integration template for the transport
-      // diagnostic. This isolates the API/token/phone path from custom WABA
-      // template availability; order-confirmation sends keep their configured
-      // template through the webhook/order routes.
-      templateName: "3p_direct_integration_test_template",
-      templateLanguage: "en_US",
-      templateParameters: [],
+      templateParameters,
     });
     await prisma.whatsAppMessage.create({ data: { shopId: shop.id, messageText: "Acesta este un mesaj de test Confirmo.", recipientPhoneNumber: result.phone.normalized, providerMessageId: result.providerMessageId, deliveryStatus: result.deliveryStatus } });
     await prisma.analyticsEvent.create({ data: { shopId: shop.id, eventType: "sandbox_message_sent", eventData: JSON.stringify({ phone: result.phone.normalized }) } });
