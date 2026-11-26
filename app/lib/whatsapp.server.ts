@@ -42,7 +42,7 @@ async function verifyMetaPhoneAccount(params: { phoneNumberId: string; businessA
 
 export async function buildTemplateParameters(shopId: string, values: string[]) {
   const configuredTemplate = await prisma.messageTemplate.findFirst({
-    where: { shopId },
+    where: { shopId, NOT: { metaTemplateName: "hello_world" } },
     orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
   });
   const placeholderCount = configuredTemplate
@@ -79,7 +79,7 @@ export async function sendWhatsAppMessage(params: {
 
   const config = await prisma.whatsAppConfig.findUnique({ where: { shopId: params.shopId } });
   const configuredTemplate = await prisma.messageTemplate.findFirst({
-    where: { shopId: params.shopId },
+    where: { shopId: params.shopId, NOT: { metaTemplateName: "hello_world" } },
     orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
   });
   const token = decryptSecret(config?.accessTokenEncrypted) || process.env.WHATSAPP_ACCESS_TOKEN;
