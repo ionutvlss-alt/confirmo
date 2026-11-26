@@ -98,8 +98,12 @@ export async function sendWhatsAppMessage(params: {
   await verifyMetaPhoneAccount({ phoneNumberId, businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version });
   const configuredTemplateName = configuredTemplate?.metaTemplateName?.trim();
   const legacyTemplateName = configuredTemplateName === "confirmo_order_confirmation" ? "noul_model_confirmare" : configuredTemplateName;
-  const templateName = params.templateName || legacyTemplateName || process.env.WHATSAPP_TEMPLATE_NAME || "noul_model_confirmare";
-  const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
+  const configuredTemplateNameFromEnv = process.env.WHATSAPP_TEMPLATE_NAME?.trim();
+  const environmentTemplateName = configuredTemplateNameFromEnv && configuredTemplateNameFromEnv !== "hello_world"
+    ? configuredTemplateNameFromEnv
+    : undefined;
+  const templateName = params.templateName || legacyTemplateName || environmentTemplateName || "noul_model_confirmare";
+  const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || "ro";
   const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
   const parameters = templateName === "hello_world" ? [] : (params.templateParameters || [params.body]);
