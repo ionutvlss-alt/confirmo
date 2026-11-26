@@ -19,8 +19,24 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const metaTemplateName = String(form.get("metaTemplateName") || templateName).trim();
   const messageTemplate = String(form.get("messageTemplate") || "").trim();
   if (!templateName || !metaTemplateName || !messageTemplate) return { ok: false, error: "Completează toate câmpurile obligatorii." };
-  if (id) await prisma.messageTemplate.updateMany({ where: { id, shopId: shop.id }, data: { templateName, metaTemplateName, messageTemplate, languageCode: String(form.get("languageCode") || "ro"), button1Text: String(form.get("button1Text") || "Confirmă comanda"), button2Text: String(form.get("button2Text") || "Refuză comanda"), button3Text: String(form.get("button3Text") || "Vreau modificări") } });
-  else await prisma.messageTemplate.create({ data: { shopId: shop.id, templateName, metaTemplateName, messageTemplate, languageCode: String(form.get("languageCode") || "ro") } });
+  const data = {
+    templateName,
+    metaTemplateName,
+    messageTemplate,
+    languageCode: String(form.get("languageCode") || "ro"),
+    button1Text: String(form.get("button1Text") || "Confirmă comanda"),
+    button2Text: String(form.get("button2Text") || "Refuză comanda"),
+    button3Text: String(form.get("button3Text") || "Vreau modificări"),
+    isActive: true,
+  };
+  await prisma.$transaction(async (tx) => {
+    await tx.messageTemplate.updateMany({ where: { shopId: shop.id }, data: { isActive: false } });
+    if (id) {
+      await tx.messageTemplate.updateMany({ where: { id, shopId: shop.id }, data });
+    } else {
+      await tx.messageTemplate.create({ data: { shopId: shop.id, ...data } });
+    }
+  });
   return { ok: true };
 };
 
@@ -84,6 +100,7 @@ export default function TemplatesPage() {
               <label htmlFor="button3Text">Button 3</label>
               <input id="button3Text" name="button3Text" defaultValue={template?.button3Text || "Vreau modificări"} />
             </div>
+            {actionData?.ok ? <div className="confirmo-callout">Template salvat și setat ca activ.</div> : null}
             {actionData?.error ? <div className="confirmo-callout" style={{ borderColor: "#b42318", background: "#fff1f1" }}>{actionData.error}</div> : null}
             <button className="confirmo-action confirmo-action-primary" type="submit">Save template</button>
           </Form>
