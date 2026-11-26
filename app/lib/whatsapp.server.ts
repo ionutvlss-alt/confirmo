@@ -102,7 +102,7 @@ export async function sendWhatsAppMessage(params: {
   const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || process.env.WHATSAPP_TEMPLATE_LANGUAGE || "ro";
   const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
-  const parameters = params.templateParameters || [params.body];
+  const parameters = templateName === "hello_world" ? [] : (params.templateParameters || [params.body]);
   const components = parameters.length > 0 ? [{ type: "body", parameters: parameters.map((text) => ({ type: "text", text })) }] : undefined;
   const response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
     method: "POST",
@@ -120,7 +120,8 @@ export async function sendWhatsAppMessage(params: {
   });
   const payload = await response.json();
   if (!response.ok || payload.error) {
-    throw new Error(payload.error?.message || "WhatsApp API request failed");
+    const details = payload.error?.error_data?.details ? ` — ${payload.error.error_data.details}` : "";
+    throw new Error(`Meta WhatsApp error ${payload.error?.code || response.status}: ${payload.error?.message || "WhatsApp API request failed"}${details}`);
   }
   console.info("WhatsApp API accepted message", { shopId: params.shopId, orderId: params.orderId, providerMessageId: payload.messages?.[0]?.id, templateName, templateLanguage });
   return { providerMessageId: payload.messages?.[0]?.id, deliveryStatus: "sent", phone };
