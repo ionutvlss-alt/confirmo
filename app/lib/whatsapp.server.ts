@@ -26,7 +26,12 @@ async function resolveMetaTemplateLanguage(params: {
   const exact = matches.find((template: any) => (template.language_code || template.language) === params.preferredLanguage);
   const selected = exact || matches[0];
   const language = selected.language_code || selected.language;
-  console.info("WhatsApp template resolved", { templateName: params.templateName, configuredLanguage: params.preferredLanguage, metaLanguage: language });
+  console.info("WhatsApp template resolved", {
+    templateName: params.templateName,
+    configuredLanguage: params.preferredLanguage,
+    metaLanguage: language,
+    availableTranslations: matches.map((template: any) => ({ language: template.language_code || template.language, status: template.status })),
+  });
   return language || params.preferredLanguage;
 }
 
