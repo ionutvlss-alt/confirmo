@@ -112,25 +112,36 @@ export async function sendWhatsAppMessage(params: {
   const requestedTemplateName = params.templateName || legacyTemplateName || environmentTemplateName || "noul_model_confirmare3";
   const templateName = requestedTemplateName === "noul_model_confirmare" ? "noul_model_confirmare3" : requestedTemplateName;
   const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || "ro";
-  const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
+  let templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
   const parameters = templateName === "hello_world" ? [] : (params.templateParameters || [params.body]);
   const components = parameters.length > 0 ? [{ type: "body", parameters: parameters.map((text) => ({ type: "text", text })) }] : undefined;
-  const response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      messaging_product: "whatsapp",
-      to: recipient,
-      type: "template",
-      template: {
-        name: templateName,
-        language: { policy: "deterministic", code: templateLanguage },
-        ...(components ? { components } : {}),
-      },
-    }),
-  });
-  const payload = await response.json();
+  const languageCandidates = templateLanguage === "ro" ? ["ro", "ro_RO"] : [templateLanguage];
+  let response: Response | undefined;
+  let payload: any;
+  for (const languageCode of languageCandidates) {
+    response = await fetch(`https://graph.facebook.com/${version}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: recipient,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { policy: "deterministic", code: languageCode },
+          ...(components ? { components } : {}),
+        },
+      }),
+    });
+    payload = await response.json();
+    console.info("WhatsApp template send attempt", { templateName, languageCode, status: response.status, errorCode: payload.error?.code });
+    if (response.ok && !payload.error) {
+      templateLanguage = languageCode;
+      break;
+    }
+    if (payload.error?.code !== 132001 || languageCode === languageCandidates[languageCandidates.length - 1]) break;
+  }
   if (!response.ok || payload.error) {
     const details = payload.error?.error_data?.details ? ` — ${payload.error.error_data.details}` : "";
     throw new Error(`Meta WhatsApp error ${payload.error?.code || response.status}: ${payload.error?.message || "WhatsApp API request failed"}${details}`);
