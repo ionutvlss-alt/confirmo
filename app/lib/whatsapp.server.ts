@@ -84,7 +84,7 @@ export async function sendWhatsAppMessage(params: {
 
   const config = await prisma.whatsAppConfig.findUnique({ where: { shopId: params.shopId } });
   const configuredTemplate = await prisma.messageTemplate.findFirst({
-    where: { shopId: params.shopId, NOT: { metaTemplateName: "hello_world" } },
+    where: { shopId: params.shopId },
     orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
   });
   const token = decryptSecret(config?.accessTokenEncrypted) || process.env.WHATSAPP_ACCESS_TOKEN;
