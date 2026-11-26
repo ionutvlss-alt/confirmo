@@ -104,7 +104,8 @@ export async function sendWhatsAppMessage(params: {
   const environmentTemplateName = configuredTemplateNameFromEnv && configuredTemplateNameFromEnv !== "hello_world"
     ? configuredTemplateNameFromEnv
     : undefined;
-  const templateName = params.templateName || legacyTemplateName || environmentTemplateName || "noul_model_confirmare";
+  const requestedTemplateName = params.templateName || legacyTemplateName || environmentTemplateName || "noul_model_confirmare3";
+  const templateName = requestedTemplateName === "noul_model_confirmare" ? "noul_model_confirmare3" : requestedTemplateName;
   const configuredLanguage = params.templateLanguage || configuredTemplate?.languageCode || "ro";
   const templateLanguage = await resolveMetaTemplateLanguage({ businessAccountId: config?.businessAccountId || process.env.WHATSAPP_BUSINESS_ACCOUNT_ID, token, version, templateName, preferredLanguage: configuredLanguage });
   const recipient = phone.normalized.replace(/^\+/, "");
